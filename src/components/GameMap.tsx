@@ -5,12 +5,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Card } from '@/components/ui/card';
-import { Loader2, Layers, Maximize2, AlertTriangle, User, UserCheck, UserX } from 'lucide-react';
+import { Loader2, Layers, Maximize2, AlertTriangle, User, UserCheck, UserX, Edit2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { kml } from '@tmcw/togeojson';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection, query, onSnapshot } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 
 // Funkcja sprawdzająca czy punkt (lat, lng) znajduje się wewnątrz poligonu (Ray Casting Algorithm)
@@ -42,7 +43,19 @@ export const GameMap: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [bounds, setBounds] = useState<maplibregl.LngLatBounds | null>(null);
   const [gamePolygon, setGamePolygon] = useState<any>(null);
-  const [playerName, setPlayerName] = useState(`Gracz ${user?.uid?.slice(-4) || '???'}`);
+  
+  const [playerName, setPlayerName] = useState("Ładowanie...");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState("");
+
+  // Inicjalizacja nazwy z localStorage lub domyślnej
+  useEffect(() => {
+    if (!user) return;
+    const savedName = localStorage.getItem('spinflow_player_name');
+    const defaultName = savedName || `Gracz ${user.uid.slice(-4)}`;
+    setPlayerName(defaultName);
+    setTempName(defaultName);
+  }, [user]);
 
   // Subskrypcja graczy
   const playersQuery = useMemoFirebase(() => {
@@ -52,7 +65,7 @@ export const GameMap: React.FC = () => {
 
   // Efekt dla lokalizacji użytkownika
   useEffect(() => {
-    if (!user || !db) return;
+    if (!user || !db || playerName === "Ładowanie...") return;
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
@@ -60,7 +73,6 @@ export const GameMap: React.FC = () => {
         let isOutside = false;
 
         if (gamePolygon) {
-          // gamePolygon.geometry.coordinates to [ [ [lng, lat], ... ] ]
           isOutside = !isPointInPolygon([longitude, latitude], gamePolygon.geometry.coordinates);
         }
 
@@ -170,7 +182,6 @@ export const GameMap: React.FC = () => {
           map.current?.fitBounds(currentBounds, { padding: 50 });
         }
 
-        // Warstwa graczy (uproszczone wyświetlanie przez MapLibre)
         map.current?.addSource('players-source', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] }
@@ -215,6 +226,17 @@ export const GameMap: React.FC = () => {
     }
   }, [players]);
 
+  const saveName = () => {
+    const finalName = tempName.trim() || `Gracz ${user?.uid.slice(-4)}`;
+    setPlayerName(finalName);
+    setIsEditingName(false);
+    localStorage.setItem('spinflow_player_name', finalName);
+    if (user && db) {
+      const playerRef = doc(db, 'players', user.uid);
+      updateDocumentNonBlocking(playerRef, { name: finalName });
+    }
+  };
+
   const resetView = () => bounds && map.current?.fitBounds(bounds, { padding: 50 });
 
   return (
@@ -224,14 +246,38 @@ export const GameMap: React.FC = () => {
           <div className="p-2 bg-primary/10 rounded-xl">
             <User className="text-primary w-5 h-5" />
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Twoja nazwa</p>
-            <p className="font-bold text-foreground">{playerName}</p>
+          <div className="flex flex-col">
+            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Twoja nazwa (kliknij aby zmienić)</p>
+            {isEditingName ? (
+              <div className="flex items-center gap-2 mt-1">
+                <Input 
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  className="h-8 w-40 bg-secondary border-primary/50 text-sm font-bold"
+                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && saveName()}
+                />
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-green-500 hover:text-green-600 hover:bg-green-500/10" onClick={saveName}>
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => { setIsEditingName(false); setTempName(playerName); }}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setIsEditingName(true)}
+                className="flex items-center gap-2 group text-left"
+              >
+                <p className="font-bold text-foreground text-lg">{playerName}</p>
+                <Edit2 className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            )}
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {players?.map(p => (
-            <div key={p.id} title={p.name} className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border ${p.isOutside ? 'bg-destructive/10 border-destructive text-destructive' : 'bg-green-500/10 border-green-500 text-green-500'}`}>
+            <div key={p.id} title={p.name} className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${p.isOutside ? 'bg-destructive/10 border-destructive text-destructive' : 'bg-green-500/10 border-green-500 text-green-500'}`}>
               {p.isOutside ? <UserX className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
               {p.name}
             </div>
