@@ -1,9 +1,8 @@
-
 "use client";
 
 import React, { useEffect, useState } from 'react';
 import { useUser, useCollection, useMemoFirebase, useAuth } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, getFirestore } from 'firebase/firestore';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { WheelCanvas } from '@/components/WheelCanvas';
 import { WheelManager } from '@/components/WheelManager';
@@ -26,7 +25,6 @@ export default function Home() {
   const [resultChallenge, setResultChallenge] = useState<{ id: string, text: string } | null>(null);
   const [showResult, setShowResult] = useState(false);
 
-  // Automatyczne logowanie anonimowe jeśli nie ma użytkownika
   useEffect(() => {
     if (!isUserLoading && !user && auth) {
       initiateAnonymousSignIn(auth);
@@ -49,7 +47,7 @@ export default function Home() {
 
   if (isUserLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F9F2FE]">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
           <p className="text-primary font-medium">Łączenie z SpinFlow...</p>
@@ -59,18 +57,18 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9F2FE] text-[#2D1B3D] font-body pb-12">
-      <header className="sticky top-0 z-40 w-full border-b bg-white/80 backdrop-blur-md px-6 py-4">
+    <div className="min-h-screen bg-background text-foreground font-body pb-12">
+      <header className="sticky top-0 z-40 w-full border-b bg-card/80 backdrop-blur-md px-6 py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <Sparkles className="text-white w-6 h-6" />
+              <Sparkles className="text-primary-foreground w-6 h-6" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-primary">SpinFlow</h1>
           </div>
           <div className="flex items-center gap-4">
             <span className="hidden md:inline text-sm font-medium text-muted-foreground">
-              Level up your decision making
+              Zautomatyzuj swoje decyzje
             </span>
             <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
               <Settings2 className="w-5 h-5 text-primary" />
@@ -83,7 +81,7 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           <aside className="lg:col-span-3 space-y-6">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-primary/5">
+            <div className="bg-card p-6 rounded-3xl shadow-sm border border-border">
               <WheelManager 
                 userId={user.uid}
                 wheels={wheels || []} 
@@ -96,10 +94,10 @@ export default function Home() {
           <section className="lg:col-span-6 flex flex-col items-center">
             <div className="w-full text-center mb-8">
               <h2 className="text-3xl font-bold mb-2 text-primary">
-                {activeWheel?.name || "Ready to spin?"}
+                {activeWheel?.name || "Gotowy na losowanie?"}
               </h2>
               <p className="text-muted-foreground">
-                Click the spin button to let destiny decide.
+                Kliknij przycisk, aby przeznaczenie zdecydowało za Ciebie.
               </p>
             </div>
             
@@ -107,21 +105,21 @@ export default function Home() {
               {activeWheelId ? (
                 <WheelCanvas userId={user.uid} wheelId={activeWheelId} onResult={handleResult} />
               ) : (
-                <div className="text-center p-12 bg-white rounded-full shadow-inner border-8 border-dashed border-primary/10">
-                  <p className="text-muted-foreground italic">Select or create a wheel to start spinning!</p>
+                <div className="text-center p-12 bg-card rounded-full shadow-inner border-8 border-dashed border-primary/10">
+                  <p className="text-muted-foreground italic">Wybierz lub stwórz koło, aby zacząć!</p>
                 </div>
               )}
             </div>
           </section>
 
           <aside className="lg:col-span-3">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-primary/5">
+            <div className="bg-card p-6 rounded-3xl shadow-sm border border-border">
               {activeWheelId ? (
                 <ChallengeManager userId={user.uid} wheelId={activeWheelId} wheelName={activeWheel?.name || ""} />
               ) : (
                 <div className="text-center py-12">
                    <ListTodo className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
-                   <p className="text-sm text-muted-foreground">Select a wheel to manage its challenges</p>
+                   <p className="text-sm text-muted-foreground">Wybierz koło, aby zarządzać wyzwaniami</p>
                 </div>
               )}
             </div>
@@ -130,15 +128,15 @@ export default function Home() {
       </main>
 
       <Dialog open={showResult} onOpenChange={setShowResult}>
-        <DialogContent className="sm:max-w-md bg-white rounded-3xl overflow-hidden border-none shadow-2xl">
+        <DialogContent className="sm:max-w-md bg-card rounded-3xl overflow-hidden border-border shadow-2xl">
           <div className="absolute top-0 left-0 w-full h-2 bg-accent" />
           <DialogHeader className="pt-8 text-center flex flex-col items-center">
             <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mb-4 shadow-xl animate-bounce">
-              <Trophy className="text-white w-10 h-10" />
+              <Trophy className="text-accent-foreground w-10 h-10" />
             </div>
-            <DialogTitle className="text-3xl font-bold text-primary mb-2">We Have a Winner!</DialogTitle>
-            <DialogDescription className="text-lg">
-              The wheel has spoken...
+            <DialogTitle className="text-3xl font-bold text-primary mb-2">Mamy Zwycięzcę!</DialogTitle>
+            <DialogDescription className="text-lg text-muted-foreground">
+              Koło fortuny przemówiło...
             </DialogDescription>
           </DialogHeader>
           <div className="my-8 p-8 bg-secondary rounded-2xl text-center border-2 border-primary/10">
@@ -149,10 +147,10 @@ export default function Home() {
           <DialogFooter className="sm:justify-center pb-6">
             <Button 
               type="button" 
-              className="bg-primary hover:bg-primary/90 text-white px-8 py-6 text-lg rounded-full"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg rounded-full"
               onClick={() => setShowResult(false)}
             >
-              AWESOME!
+              SUPER!
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -160,6 +158,3 @@ export default function Home() {
     </div>
   );
 }
-
-// Import dynamiczny firestore dla useMemoFirebase
-import { getFirestore } from 'firebase/firestore';

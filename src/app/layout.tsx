@@ -1,12 +1,11 @@
-
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'SpinFlow - Interactive Wheel of Fortune',
-  description: 'Create, manage, and spin custom wheels of fortune for challenges and fun.',
+  title: 'SpinFlow - Interaktywne Koło Fortuny',
+  description: 'Twórz, zarządzaj i kręć własnymi kołami fortuny pełnymi wyzwań i zabawy.',
 };
 
 export default function RootLayout({
@@ -15,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="pl" className="dark">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

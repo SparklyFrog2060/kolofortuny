@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -59,7 +58,7 @@ export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ userId, whee
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      const theme = wheelName || "party games";
+      const theme = wheelName || "gry imprezowe";
       const result = await generateChallengeIdeas({ theme });
       if (result.ideas && result.ideas.length > 0 && db) {
         result.ideas.forEach(idea => {
@@ -77,15 +76,15 @@ export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ userId, whee
         });
 
         toast({
-          title: "AI Ideas Generated",
-          description: `Added ${result.ideas.length} new challenges inspired by "${theme}".`,
+          title: "Wygenerowano pomysły AI",
+          description: `Dodano ${result.ideas.length} nowych wyzwań dla motywu "${theme}".`,
         });
       }
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Generation Failed",
-        description: "Could not generate ideas right now.",
+        title: "Błąd generowania",
+        description: "Nie udało się wygenerować pomysłów w tej chwili.",
       });
     } finally {
       setIsGenerating(false);
@@ -96,27 +95,27 @@ export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ userId, whee
     <Card className="border-none shadow-none bg-transparent">
       <CardHeader className="px-0 pt-0">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-primary">Challenges</h2>
+          <h2 className="text-xl font-bold text-primary">Wyzwania</h2>
           <Button 
             variant="outline" 
             size="sm" 
             onClick={handleGenerate} 
             disabled={isGenerating}
-            className="border-primary text-primary hover:bg-primary hover:text-white"
+            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
           >
             {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-            AI Ideas
+            Pomysły AI
           </Button>
         </div>
         <div className="flex gap-2">
           <Input 
-            placeholder="Add new challenge..." 
+            placeholder="Dodaj wyzwanie..." 
             value={newChallenge} 
             onChange={(e) => setNewChallenge(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-            className="bg-white border-primary/20 focus:border-primary"
+            className="bg-secondary border-border focus:border-primary text-foreground"
           />
-          <Button onClick={handleAdd} className="bg-primary text-white shrink-0">
+          <Button onClick={handleAdd} className="bg-primary text-primary-foreground shrink-0">
             <Plus className="h-4 w-4" />
           </Button>
         </div>
@@ -125,9 +124,9 @@ export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ userId, whee
         {challenges?.map((challenge) => (
           <div 
             key={challenge.id}
-            className="group flex items-center justify-between p-3 bg-white rounded-xl border border-primary/5 hover:border-primary/20 transition-all shadow-sm"
+            className="group flex items-center justify-between p-3 bg-secondary rounded-xl border border-border hover:border-primary/20 transition-all shadow-sm"
           >
-            <span className="text-sm font-medium">{challenge.text}</span>
+            <span className="text-sm font-medium text-foreground">{challenge.text}</span>
             <Button 
               size="icon" 
               variant="ghost" 
@@ -139,9 +138,9 @@ export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ userId, whee
           </div>
         ))}
         {(!challenges || challenges.length === 0) && (
-          <div className="text-center py-12 border-2 border-dashed border-primary/10 rounded-2xl bg-white/50">
+          <div className="text-center py-12 border-2 border-dashed border-border rounded-2xl bg-card">
             <p className="text-sm text-muted-foreground italic">
-              Empty wheel. Add some challenges!
+              Puste koło. Dodaj wyzwania!
             </p>
           </div>
         )}

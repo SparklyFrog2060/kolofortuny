@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -14,13 +13,13 @@ interface WheelCanvasProps {
 }
 
 const COLORS = [
-  '#A91AE5', // Electric Violet
-  '#F81FC6', // Vibrant Fuchsia
-  '#8A2BE2', // Blue Violet
-  '#DA70D6', // Orchid
-  '#9400D3', // Dark Violet
-  '#EE82EE', // Violet
-  '#FF00FF', // Magenta
+  '#0ea5e9', // Sky 500
+  '#2563eb', // Blue 600
+  '#4f46e5', // Indigo 600
+  '#7c3aed', // Violet 600
+  '#0284c7', // Sky 600
+  '#3b82f6', // Blue 500
+  '#6366f1', // Indigo 500
 ];
 
 export const WheelCanvas: React.FC<WheelCanvasProps> = ({ userId, wheelId, onResult }) => {
@@ -54,14 +53,14 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ userId, wheelId, onRes
     if (!challenges || challenges.length === 0) {
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = '#f3f4f6';
+      ctx.fillStyle = '#1e293b';
       ctx.fill();
-      ctx.strokeStyle = '#e5e7eb';
+      ctx.strokeStyle = '#334155';
       ctx.stroke();
-      ctx.fillStyle = '#9ca3af';
+      ctx.fillStyle = '#94a3b8';
       ctx.font = '16px Poppins';
       ctx.textAlign = 'center';
-      ctx.fillText(isLoading ? 'Loading...' : 'Add challenges to start', centerX, centerY);
+      ctx.fillText(isLoading ? 'Ładowanie...' : 'Dodaj wyzwania, by zacząć', centerX, centerY);
       return;
     }
 
@@ -76,8 +75,8 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ userId, wheelId, onRes
       ctx.arc(centerX, centerY, radius, startAngle, endAngle);
       ctx.fillStyle = COLORS[i % COLORS.length];
       ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#ffffff33';
+      ctx.lineWidth = 1;
       ctx.stroke();
 
       ctx.save();
@@ -91,12 +90,13 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ userId, wheelId, onRes
       ctx.restore();
     });
 
+    // Central hub
     ctx.beginPath();
     ctx.arc(centerX, centerY, 15, 0, 2 * Math.PI);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
     ctx.lineWidth = 4;
-    ctx.strokeStyle = '#A91AE5';
+    ctx.strokeStyle = '#0ea5e9';
     ctx.stroke();
   };
 
@@ -134,7 +134,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ userId, wheelId, onRes
 
   return (
     <div className="flex flex-col items-center gap-8">
-      <div className="relative p-4 bg-white rounded-full shadow-2xl border-4 border-white">
+      <div className="relative p-4 bg-card rounded-full shadow-2xl border-4 border-border">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-10 bg-accent z-10 shadow-lg" style={{ clipPath: 'polygon(50% 100%, 0 0, 100% 0)' }} />
         <canvas 
           ref={canvasRef} 
@@ -147,10 +147,10 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ userId, wheelId, onRes
         size="lg" 
         onClick={handleSpin} 
         disabled={isSpinning || !challenges || challenges.length < 2}
-        className="bg-primary hover:bg-primary/90 text-white px-12 py-8 text-2xl font-bold rounded-full shadow-xl transition-all active:scale-95"
+        className="bg-primary hover:bg-primary/90 text-primary-foreground px-12 py-8 text-2xl font-bold rounded-full shadow-xl transition-all active:scale-95"
       >
         {isSpinning ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : <Play className="mr-2 h-6 w-6 fill-current" />}
-        SPIN NOW
+        KRĘĆ!
       </Button>
     </div>
   );
