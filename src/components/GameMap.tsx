@@ -19,7 +19,6 @@ export const GameMap: React.FC = () => {
   useEffect(() => {
     if (!mapContainer.current) return;
 
-    // Inicjalizacja mapy
     map.current = new maplibregl.Map({
       container: mapContainer.current,
       style: {
@@ -42,10 +41,10 @@ export const GameMap: React.FC = () => {
           }
         ]
       },
-      center: [21.0122, 52.2297], // Startowo Warszawa, ale zaraz zrobimy fitBounds
-      zoom: 12,
+      center: [20.04, 49.94],
+      zoom: 14,
       pitch: 45,
-      bearing: -17.6
+      bearing: 0
     });
 
     map.current.on('load', async () => {
@@ -62,13 +61,24 @@ export const GameMap: React.FC = () => {
           throw new Error('Plik KML nie zawiera żadnych danych geograficznych.');
         }
 
-        // Dodanie danych do mapy
         map.current?.addSource('game-data', {
           type: 'geojson',
           data: geojson
         });
 
-        // Warstwa linii
+        // Warstwa wypełnienia poligonów (obszar gry)
+        map.current?.addLayer({
+          id: 'game-polygons-fill',
+          type: 'fill',
+          source: 'game-data',
+          paint: {
+            'fill-color': '#0ea5e9',
+            'fill-opacity': 0.2
+          },
+          filter: ['==', '$type', 'Polygon']
+        });
+
+        // Warstwa krawędzi poligonów i linii
         map.current?.addLayer({
           id: 'game-lines',
           type: 'line',
@@ -79,13 +89,13 @@ export const GameMap: React.FC = () => {
           },
           paint: {
             'line-color': '#0ea5e9',
-            'line-width': 4,
+            'line-width': 3,
             'line-opacity': 0.8
           },
-          filter: ['==', '$type', 'LineString']
+          filter: ['any', ['==', '$type', 'LineString'], ['==', '$type', 'Polygon']]
         });
 
-        // Warstwa punktów (jeśli są)
+        // Warstwa punktów
         map.current?.addLayer({
           id: 'game-points',
           type: 'circle',
@@ -99,7 +109,6 @@ export const GameMap: React.FC = () => {
           filter: ['==', '$type', 'Point']
         });
 
-        // Obliczanie granic (bounds) dla automatycznego zoomu
         const currentBounds = new maplibregl.LngLatBounds();
         geojson.features.forEach((feature: any) => {
           if (feature.geometry.type === 'Point') {
@@ -143,7 +152,7 @@ export const GameMap: React.FC = () => {
         {loading && (
           <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
             <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-            <p className="text-primary font-medium">Wczytywanie danych gry...</p>
+            <p className="text-primary font-medium">Wczytywanie terenu gry...</p>
           </div>
         )}
 
@@ -152,7 +161,6 @@ export const GameMap: React.FC = () => {
             <AlertTriangle className="w-12 h-12 text-destructive mb-4" />
             <h3 className="text-xl font-bold text-destructive mb-2">Błąd mapy</h3>
             <p className="text-muted-foreground max-w-md">{error}</p>
-            <p className="text-xs text-muted-foreground mt-4">Upewnij się, że plik <code>Chowany.kml</code> znajduje się w folderze <code>public/</code> projektu.</p>
           </div>
         )}
         
@@ -171,10 +179,10 @@ export const GameMap: React.FC = () => {
             <div className="bg-card/90 backdrop-blur p-4 rounded-2xl border border-border shadow-lg max-w-xs">
               <div className="flex items-center gap-2 mb-2">
                 <Layers className="w-4 h-4 text-primary" />
-                <h4 className="font-bold text-sm">Dane z KML</h4>
+                <h4 className="font-bold text-sm">Teren Gry</h4>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Mapa automatycznie wykryła obszar gry. <span className="text-primary">Niebieskie linie</span> to trasy, a <span className="text-destructive">czerwone punkty</span> to cele.
+                Mapa wyświetla <span className="text-primary font-bold">obszar gry</span> zdefiniowany w pliku KML. Możesz go obracać prawym przyciskiem myszy.
               </p>
             </div>
           </div>
