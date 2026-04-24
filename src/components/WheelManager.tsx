@@ -1,28 +1,51 @@
+
 "use client";
 
 import React, { useState } from 'react';
-import { Wheel, createWheel, deleteWheel } from '@/app/lib/store';
+import { useFirestore } from '@/firebase';
+import { doc, collection } from 'firebase/firestore';
+import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Edit3, Check, X } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Plus, Trash2, Check, X } from 'lucide-react';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface WheelManagerProps {
-  wheels: Wheel[];
+  userId: string;
+  wheels: any[];
   activeWheelId: string | null;
-  onSelect: (wheel: Wheel) => void;
+  onSelect: (wheel: any) => void;
 }
 
-export const WheelManager: React.FC<WheelManagerProps> = ({ wheels, activeWheelId, onSelect }) => {
+export const WheelManager: React.FC<WheelManagerProps> = ({ userId, wheels, activeWheelId, onSelect }) => {
   const [newWheelName, setNewWheelName] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const db = useFirestore();
 
-  const handleAdd = async () => {
-    if (!newWheelName.trim()) return;
-    await createWheel(newWheelName);
+  const handleAdd = () => {
+    if (!newWheelName.trim() || !db) return;
+    
+    const wheelId = Math.random().toString(36).substr(2, 9);
+    const wheelRef = doc(db, 'users', userId, 'wheels', wheelId);
+    
+    const now = new Date().toISOString();
+    setDocumentNonBlocking(wheelRef, {
+      id: wheelId,
+      name: newWheelName.trim(),
+      userId: userId,
+      createdAt: now,
+      updatedAt: now
+    }, { merge: true });
+
     setNewWheelName('');
     setIsAdding(false);
+  };
+
+  const handleDelete = (id: string) => {
+    if (!db) return;
+    const wheelRef = doc(db, 'users', userId, 'wheels', id);
+    deleteDocumentNonBlocking(wheelRef);
   };
 
   return (
@@ -45,6 +68,7 @@ export const WheelManager: React.FC<WheelManagerProps> = ({ wheels, activeWheelI
               placeholder="Wheel name..." 
               value={newWheelName} 
               onChange={(e) => setNewWheelName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
               className="bg-white border-primary/20 focus:border-primary"
             />
             <Button onClick={handleAdd} className="bg-primary text-white">
@@ -73,7 +97,7 @@ export const WheelManager: React.FC<WheelManagerProps> = ({ wheels, activeWheelI
                 className={cn("h-7 w-7", activeWheelId === wheel.id ? "text-white hover:bg-white/20" : "text-muted-foreground hover:text-destructive")}
                 onClick={(e) => {
                   e.stopPropagation();
-                  deleteWheel(wheel.id);
+                  handleDelete(wheel.id);
                 }}
               >
                 <Trash2 className="h-4 w-4" />

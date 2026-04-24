@@ -1,56 +1,87 @@
+
 "use client";
 
 import React, { useState } from 'react';
-import { Challenge, Wheel, updateWheelChallenges } from '@/app/lib/store';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, collection } from 'firebase/firestore';
+import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Trash2, Wand2, Loader2 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { generateChallengeIdeas } from '@/ai/flows/generate-challenge-ideas';
 import { useToast } from '@/hooks/use-toast';
 
 interface ChallengeManagerProps {
-  activeWheel: Wheel;
+  userId: string;
+  wheelId: string;
+  wheelName: string;
 }
 
-export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ activeWheel }) => {
+export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ userId, wheelId, wheelName }) => {
   const [newChallenge, setNewChallenge] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+  const db = useFirestore();
 
-  const handleAdd = async () => {
-    if (!newChallenge.trim()) return;
-    const updatedChallenges = [
-      ...activeWheel.challenges,
-      { id: Math.random().toString(36).substr(2, 9), text: newChallenge.trim() }
-    ];
-    await updateWheelChallenges(activeWheel.id, updatedChallenges);
+  const challengesQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return collection(db, 'users', userId, 'wheels', wheelId, 'challenges');
+  }, [db, userId, wheelId]);
+
+  const { data: challenges } = useCollection(challengesQuery);
+
+  const handleAdd = () => {
+    if (!newChallenge.trim() || !db) return;
+    
+    const challengeId = Math.random().toString(36).substr(2, 9);
+    const challengeRef = doc(db, 'users', userId, 'wheels', wheelId, 'challenges', challengeId);
+    
+    const now = new Date().toISOString();
+    setDocumentNonBlocking(challengeRef, {
+      id: challengeId,
+      text: newChallenge.trim(),
+      wheelId: wheelId,
+      isAI_Generated: false,
+      createdAt: now,
+      updatedAt: now
+    }, { merge: true });
+
     setNewChallenge('');
   };
 
-  const handleRemove = async (id: string) => {
-    const updatedChallenges = activeWheel.challenges.filter(c => c.id !== id);
-    await updateWheelChallenges(activeWheel.id, updatedChallenges);
+  const handleRemove = (id: string) => {
+    if (!db) return;
+    const challengeRef = doc(db, 'users', userId, 'wheels', wheelId, 'challenges', id);
+    deleteDocumentNonBlocking(challengeRef);
   };
 
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      const theme = activeWheel.name || "party games";
+      const theme = wheelName || "party games";
       const result = await generateChallengeIdeas({ theme });
-      if (result.ideas && result.ideas.length > 0) {
-        const newIdeas = result.ideas.map(idea => ({
-          id: Math.random().toString(36).substr(2, 9),
-          text: idea
-        }));
-        await updateWheelChallenges(activeWheel.id, [...activeWheel.challenges, ...newIdeas]);
+      if (result.ideas && result.ideas.length > 0 && db) {
+        result.ideas.forEach(idea => {
+          const challengeId = Math.random().toString(36).substr(2, 9);
+          const challengeRef = doc(db, 'users', userId, 'wheels', wheelId, 'challenges', challengeId);
+          const now = new Date().toISOString();
+          setDocumentNonBlocking(challengeRef, {
+            id: challengeId,
+            text: idea,
+            wheelId: wheelId,
+            isAI_Generated: true,
+            createdAt: now,
+            updatedAt: now
+          }, { merge: true });
+        });
+
         toast({
           title: "AI Ideas Generated",
           description: `Added ${result.ideas.length} new challenges inspired by "${theme}".`,
         });
       }
     } catch (error) {
-      console.error(error);
       toast({
         variant: "destructive",
         title: "Generation Failed",
@@ -91,7 +122,7 @@ export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ activeWheel 
         </div>
       </CardHeader>
       <CardContent className="px-0 space-y-2 mt-4 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin">
-        {activeWheel.challenges.map((challenge) => (
+        {challenges?.map((challenge) => (
           <div 
             key={challenge.id}
             className="group flex items-center justify-between p-3 bg-white rounded-xl border border-primary/5 hover:border-primary/20 transition-all shadow-sm"
@@ -107,7 +138,7 @@ export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ activeWheel 
             </Button>
           </div>
         ))}
-        {activeWheel.challenges.length === 0 && (
+        {(!challenges || challenges.length === 0) && (
           <div className="text-center py-12 border-2 border-dashed border-primary/10 rounded-2xl bg-white/50">
             <p className="text-sm text-muted-foreground italic">
               Empty wheel. Add some challenges!

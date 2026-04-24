@@ -1,13 +1,16 @@
+
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Challenge } from '@/app/lib/store';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { Play } from 'lucide-react';
+import { Play, Loader2 } from 'lucide-react';
 
 interface WheelCanvasProps {
-  challenges: Challenge[];
-  onResult: (challenge: Challenge) => void;
+  userId: string;
+  wheelId: string;
+  onResult: (challenge: { id: string, text: string }) => void;
 }
 
 const COLORS = [
@@ -20,12 +23,20 @@ const COLORS = [
   '#FF00FF', // Magenta
 ];
 
-export const WheelCanvas: React.FC<WheelCanvasProps> = ({ challenges, onResult }) => {
+export const WheelCanvas: React.FC<WheelCanvasProps> = ({ userId, wheelId, onResult }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const rotationRef = useRef(0);
   const velocityRef = useRef(0);
   const frameRef = useRef(0);
+  const db = useFirestore();
+
+  const challengesQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return collection(db, 'users', userId, 'wheels', wheelId, 'challenges');
+  }, [db, userId, wheelId]);
+
+  const { data: challenges, isLoading } = useCollection(challengesQuery);
 
   const draw = (rotation: number) => {
     const canvas = canvasRef.current;
@@ -40,7 +51,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ challenges, onResult }
 
     ctx.clearRect(0, 0, size, size);
 
-    if (challenges.length === 0) {
+    if (!challenges || challenges.length === 0) {
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
       ctx.fillStyle = '#f3f4f6';
@@ -50,7 +61,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ challenges, onResult }
       ctx.fillStyle = '#9ca3af';
       ctx.font = '16px Poppins';
       ctx.textAlign = 'center';
-      ctx.fillText('Add challenges to start', centerX, centerY);
+      ctx.fillText(isLoading ? 'Loading...' : 'Add challenges to start', centerX, centerY);
       return;
     }
 
@@ -60,7 +71,6 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ challenges, onResult }
       const startAngle = i * sliceAngle + rotation;
       const endAngle = (i + 1) * sliceAngle + rotation;
 
-      // Draw slice
       ctx.beginPath();
       ctx.moveTo(centerX, centerY);
       ctx.arc(centerX, centerY, radius, startAngle, endAngle);
@@ -70,7 +80,6 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ challenges, onResult }
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Draw text
       ctx.save();
       ctx.translate(centerX, centerY);
       ctx.rotate(startAngle + sliceAngle / 2);
@@ -82,7 +91,6 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ challenges, onResult }
       ctx.restore();
     });
 
-    // Draw center pin
     ctx.beginPath();
     ctx.arc(centerX, centerY, 15, 0, 2 * Math.PI);
     ctx.fillStyle = '#ffffff';
@@ -95,28 +103,27 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ challenges, onResult }
   const animate = () => {
     if (velocityRef.current > 0.001) {
       rotationRef.current += velocityRef.current;
-      velocityRef.current *= 0.985; // Friction
+      velocityRef.current *= 0.985;
       draw(rotationRef.current);
       frameRef.current = requestAnimationFrame(animate);
     } else {
       setIsSpinning(false);
       velocityRef.current = 0;
       
-      // Calculate result
-      const sliceAngle = (2 * Math.PI) / challenges.length;
-      const normalizedRotation = (rotationRef.current % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-      // The pointer is at 0 rad (right side). Result slice is opposite to rotation.
-      // Adjusting for common expectation (pointer at top is -PI/2)
-      const adjustedRotation = (2 * Math.PI - normalizedRotation) % (2 * Math.PI);
-      const winningIndex = Math.floor(adjustedRotation / sliceAngle);
-      onResult(challenges[winningIndex]);
+      if (challenges && challenges.length > 0) {
+        const sliceAngle = (2 * Math.PI) / challenges.length;
+        const normalizedRotation = (rotationRef.current % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+        const adjustedRotation = (2 * Math.PI - normalizedRotation) % (2 * Math.PI);
+        const winningIndex = Math.floor(adjustedRotation / sliceAngle);
+        onResult(challenges[winningIndex]);
+      }
     }
   };
 
   const handleSpin = () => {
-    if (isSpinning || challenges.length < 2) return;
+    if (isSpinning || !challenges || challenges.length < 2) return;
     setIsSpinning(true);
-    velocityRef.current = Math.random() * 0.5 + 0.3; // Random initial speed
+    velocityRef.current = Math.random() * 0.5 + 0.3;
     animate();
   };
 
@@ -128,8 +135,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ challenges, onResult }
   return (
     <div className="flex flex-col items-center gap-8">
       <div className="relative p-4 bg-white rounded-full shadow-2xl border-4 border-white">
-        {/* Pointer */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-10 bg-accent clip-path-triangle z-10 shadow-lg" style={{ clipPath: 'polygon(50% 100%, 0 0, 100% 0)' }} />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-10 bg-accent z-10 shadow-lg" style={{ clipPath: 'polygon(50% 100%, 0 0, 100% 0)' }} />
         <canvas 
           ref={canvasRef} 
           width={400} 
@@ -140,10 +146,10 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ challenges, onResult }
       <Button 
         size="lg" 
         onClick={handleSpin} 
-        disabled={isSpinning || challenges.length < 2}
+        disabled={isSpinning || !challenges || challenges.length < 2}
         className="bg-primary hover:bg-primary/90 text-white px-12 py-8 text-2xl font-bold rounded-full shadow-xl transition-all active:scale-95"
       >
-        <Play className="mr-2 h-6 w-6 fill-current" />
+        {isSpinning ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : <Play className="mr-2 h-6 w-6 fill-current" />}
         SPIN NOW
       </Button>
     </div>
