@@ -1,0 +1,10 @@
+{
+  "placeholderImages": [
+    {
+      "id": "hero-wheel",
+      "description": "A colorful wheel of fortune",
+      "imageUrl": "https://picsum.photos/seed/wheel1/1200/800",
+      "imageHint": "colorful wheel"
+    }
+  ]
+}
