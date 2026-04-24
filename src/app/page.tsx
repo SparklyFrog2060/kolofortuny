@@ -31,10 +31,10 @@ export default function Home() {
     }
   }, [user, isUserLoading, auth]);
 
+  // Pobieramy wszystkie koła z globalnej kolekcji
   const wheelsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(collection(getFirestore(), 'users', user.uid, 'wheels'), orderBy('createdAt', 'desc'));
-  }, [user]);
+    return query(collection(getFirestore(), 'wheels'), orderBy('createdAt', 'desc'));
+  }, []);
 
   const { data: wheels, isLoading: isWheelsLoading } = useCollection(wheelsQuery);
 
@@ -50,7 +50,7 @@ export default function Home() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
-          <p className="text-primary font-medium">Łączenie z SpinFlow...</p>
+          <p className="text-primary font-medium">Łączenie...</p>
         </div>
       </div>
     );
@@ -66,13 +66,8 @@ export default function Home() {
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-primary">SpinFlow</h1>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="hidden md:inline text-sm font-medium text-muted-foreground">
-              Zautomatyzuj swoje decyzje
-            </span>
-            <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-              <Settings2 className="w-5 h-5 text-primary" />
-            </div>
+          <div className="hidden md:block text-sm font-medium text-muted-foreground">
+            Wspólne losowanie w czasie rzeczywistym
           </div>
         </div>
       </header>
@@ -83,7 +78,6 @@ export default function Home() {
           <aside className="lg:col-span-3 space-y-6">
             <div className="bg-card p-6 rounded-3xl shadow-sm border border-border">
               <WheelManager 
-                userId={user.uid}
                 wheels={wheels || []} 
                 activeWheelId={activeWheelId} 
                 onSelect={(w) => setActiveWheelId(w.id)} 
@@ -94,19 +88,19 @@ export default function Home() {
           <section className="lg:col-span-6 flex flex-col items-center">
             <div className="w-full text-center mb-8">
               <h2 className="text-3xl font-bold mb-2 text-primary">
-                {activeWheel?.name || "Gotowy na losowanie?"}
+                {activeWheel?.name || "Wybierz koło"}
               </h2>
               <p className="text-muted-foreground">
-                Kliknij przycisk, aby przeznaczenie zdecydowało za Ciebie.
+                Zalalogowany anonimowo. Wszystkie koła są wspólne.
               </p>
             </div>
             
             <div className="relative w-full aspect-square max-w-[500px] flex items-center justify-center">
               {activeWheelId ? (
-                <WheelCanvas userId={user.uid} wheelId={activeWheelId} onResult={handleResult} />
+                <WheelCanvas wheelId={activeWheelId} onResult={handleResult} />
               ) : (
                 <div className="text-center p-12 bg-card rounded-full shadow-inner border-8 border-dashed border-primary/10">
-                  <p className="text-muted-foreground italic">Wybierz lub stwórz koło, aby zacząć!</p>
+                  <p className="text-muted-foreground italic">Wybierz lub stwórz koło z listy obok!</p>
                 </div>
               )}
             </div>
@@ -115,11 +109,11 @@ export default function Home() {
           <aside className="lg:col-span-3">
             <div className="bg-card p-6 rounded-3xl shadow-sm border border-border">
               {activeWheelId ? (
-                <ChallengeManager userId={user.uid} wheelId={activeWheelId} wheelName={activeWheel?.name || ""} />
+                <ChallengeManager wheelId={activeWheelId} />
               ) : (
                 <div className="text-center py-12">
                    <ListTodo className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
-                   <p className="text-sm text-muted-foreground">Wybierz koło, aby zarządzać wyzwaniami</p>
+                   <p className="text-sm text-muted-foreground">Tutaj pojawią się opcje losowania</p>
                 </div>
               )}
             </div>
@@ -134,10 +128,7 @@ export default function Home() {
             <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mb-4 shadow-xl animate-bounce">
               <Trophy className="text-accent-foreground w-10 h-10" />
             </div>
-            <DialogTitle className="text-3xl font-bold text-primary mb-2">Mamy Zwycięzcę!</DialogTitle>
-            <DialogDescription className="text-lg text-muted-foreground">
-              Koło fortuny przemówiło...
-            </DialogDescription>
+            <DialogTitle className="text-3xl font-bold text-primary mb-2">Wynik!</DialogTitle>
           </DialogHeader>
           <div className="my-8 p-8 bg-secondary rounded-2xl text-center border-2 border-primary/10">
             <p className="text-2xl font-bold text-primary break-words">

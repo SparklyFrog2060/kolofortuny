@@ -11,13 +11,12 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface WheelManagerProps {
-  userId: string;
   wheels: any[];
   activeWheelId: string | null;
   onSelect: (wheel: any) => void;
 }
 
-export const WheelManager: React.FC<WheelManagerProps> = ({ userId, wheels, activeWheelId, onSelect }) => {
+export const WheelManager: React.FC<WheelManagerProps> = ({ wheels, activeWheelId, onSelect }) => {
   const [newWheelName, setNewWheelName] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const db = useFirestore();
@@ -26,13 +25,12 @@ export const WheelManager: React.FC<WheelManagerProps> = ({ userId, wheels, acti
     if (!newWheelName.trim() || !db) return;
     
     const wheelId = Math.random().toString(36).substr(2, 9);
-    const wheelRef = doc(db, 'users', userId, 'wheels', wheelId);
+    const wheelRef = doc(db, 'wheels', wheelId);
     
     const now = new Date().toISOString();
     setDocumentNonBlocking(wheelRef, {
       id: wheelId,
       name: newWheelName.trim(),
-      userId: userId,
       createdAt: now,
       updatedAt: now
     }, { merge: true });
@@ -43,7 +41,7 @@ export const WheelManager: React.FC<WheelManagerProps> = ({ userId, wheels, acti
 
   const handleDelete = (id: string) => {
     if (!db) return;
-    const wheelRef = doc(db, 'users', userId, 'wheels', id);
+    const wheelRef = doc(db, 'wheels', id);
     deleteDocumentNonBlocking(wheelRef);
   };
 
@@ -51,7 +49,7 @@ export const WheelManager: React.FC<WheelManagerProps> = ({ userId, wheels, acti
     <Card className="border-none shadow-none bg-transparent">
       <CardHeader className="px-0 pt-0">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-primary">Twoje Koła</h2>
+          <h2 className="text-xl font-bold text-primary">Wszystkie Koła</h2>
           <Button 
             size="icon" 
             variant="ghost" 
@@ -89,26 +87,19 @@ export const WheelManager: React.FC<WheelManagerProps> = ({ userId, wheels, acti
             )}
           >
             <span className="font-medium truncate">{wheel.name}</span>
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button 
-                size="icon" 
-                variant="ghost" 
-                className={cn("h-7 w-7", activeWheelId === wheel.id ? "text-primary-foreground hover:bg-white/20" : "text-muted-foreground hover:text-destructive")}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(wheel.id);
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              className={cn("h-7 w-7 opacity-0 group-hover:opacity-100", activeWheelId === wheel.id ? "text-primary-foreground hover:bg-white/20" : "text-muted-foreground hover:text-destructive")}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete(wheel.id);
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         ))}
-        {wheels.length === 0 && !isAdding && (
-          <p className="text-sm text-muted-foreground text-center py-8 italic">
-            Brak kół. Stwórz pierwsze, aby zacząć!
-          </p>
-        )}
       </CardContent>
     </Card>
   );

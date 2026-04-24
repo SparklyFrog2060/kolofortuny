@@ -1,33 +1,29 @@
-
 "use client";
 
 import React, { useState } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
+import { doc, collection, orderBy, query } from 'firebase/firestore';
 import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Wand2, Loader2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { generateChallengeIdeas } from '@/ai/flows/generate-challenge-ideas';
-import { useToast } from '@/hooks/use-toast';
 
 interface ChallengeManagerProps {
-  userId: string;
   wheelId: string;
-  wheelName: string;
 }
 
-export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ userId, wheelId, wheelName }) => {
+export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ wheelId }) => {
   const [newChallenge, setNewChallenge] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const { toast } = useToast();
   const db = useFirestore();
 
   const challengesQuery = useMemoFirebase(() => {
     if (!db) return null;
-    return collection(db, 'users', userId, 'wheels', wheelId, 'challenges');
-  }, [db, userId, wheelId]);
+    return query(
+      collection(db, 'wheels', wheelId, 'challenges'),
+      orderBy('createdAt', 'asc')
+    );
+  }, [db, wheelId]);
 
   const { data: challenges } = useCollection(challengesQuery);
 
@@ -35,14 +31,13 @@ export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ userId, whee
     if (!newChallenge.trim() || !db) return;
     
     const challengeId = Math.random().toString(36).substr(2, 9);
-    const challengeRef = doc(db, 'users', userId, 'wheels', wheelId, 'challenges', challengeId);
+    const challengeRef = doc(db, 'wheels', wheelId, 'challenges', challengeId);
     
     const now = new Date().toISOString();
     setDocumentNonBlocking(challengeRef, {
       id: challengeId,
       text: newChallenge.trim(),
       wheelId: wheelId,
-      isAI_Generated: false,
       createdAt: now,
       updatedAt: now
     }, { merge: true });
@@ -52,75 +47,17 @@ export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ userId, whee
 
   const handleRemove = (id: string) => {
     if (!db) return;
-    const challengeRef = doc(db, 'users', userId, 'wheels', wheelId, 'challenges', id);
+    const challengeRef = doc(db, 'wheels', wheelId, 'challenges', id);
     deleteDocumentNonBlocking(challengeRef);
-  };
-
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    try {
-      const theme = wheelName || "gry imprezowe";
-      const result = await generateChallengeIdeas({ theme });
-      
-      if (result.error) {
-        toast({
-          variant: "destructive",
-          title: "Błąd AI",
-          description: result.error,
-        });
-        return;
-      }
-
-      if (result.ideas && result.ideas.length > 0 && db) {
-        result.ideas.forEach(idea => {
-          const challengeId = Math.random().toString(36).substr(2, 9);
-          const challengeRef = doc(db, 'users', userId, 'wheels', wheelId, 'challenges', challengeId);
-          const now = new Date().toISOString();
-          setDocumentNonBlocking(challengeRef, {
-            id: challengeId,
-            text: idea,
-            wheelId: wheelId,
-            isAI_Generated: true,
-            createdAt: now,
-            updatedAt: now
-          }, { merge: true });
-        });
-
-        toast({
-          title: "Wygenerowano pomysły AI",
-          description: `Dodano ${result.ideas.length} nowych wyzwań.`,
-        });
-      }
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Błąd",
-        description: "Nie udało się połączyć z usługą AI.",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
   };
 
   return (
     <Card className="border-none shadow-none bg-transparent">
       <CardHeader className="px-0 pt-0">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-primary">Wyzwania</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleGenerate} 
-            disabled={isGenerating}
-            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-          >
-            {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-            Pomysły AI
-          </Button>
-        </div>
+        <h2 className="text-xl font-bold text-primary mb-4">Wyzwania</h2>
         <div className="flex gap-2">
           <Input 
-            placeholder="Dodaj wyzwanie..." 
+            placeholder="Wpisz wyzwanie..." 
             value={newChallenge} 
             onChange={(e) => setNewChallenge(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
@@ -149,11 +86,9 @@ export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ userId, whee
           </div>
         ))}
         {(!challenges || challenges.length === 0) && (
-          <div className="text-center py-12 border-2 border-dashed border-border rounded-2xl bg-card">
-            <p className="text-sm text-muted-foreground italic">
-              Puste koło. Dodaj wyzwania!
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground text-center py-8 italic">
+            Brak wyzwań. Dodaj coś!
+          </p>
         )}
       </CardContent>
     </Card>

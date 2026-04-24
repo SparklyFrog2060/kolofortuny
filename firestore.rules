@@ -1,92 +1,16 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * CORE PHILOSOPHY
-     * This ruleset enforces a strict User-Ownership model. All data is organized hierarchically 
-     * under a specific user's path, ensuring that users can only access and modify their own 
-     * wheels and challenges.
-     *
-     * DATA STRUCTURE
-     * The data is organized as follows:
-     * - /users/{userId}/wheels/{wheelId} : User-specific wheels.
-     * - /users/{userId}/wheels/{wheelId}/challenges/{challengeId} : Challenges belonging to a specific wheel.
-     *
-     * KEY SECURITY DECISIONS
-     * 1. Path-Based Authorization: We rely on the {userId} wildcard in the document path to 
-     *    determine ownership. This is the most efficient and secure method in Firestore.
-     * 2. Prototyping Flexibility: While we strictly enforce WHO can write (authorization), 
-     *    we are flexible on the internal data shape (schema) to allow for rapid UI iteration.
-     * 3. Relational Integrity: We ensure that when a document is created, its internal 
-     *    ID fields (like userId or wheelId) match the physical path in Firestore.
-     * 4. State Validation: All updates and deletes require the document to exist (resource != null).
-     */
-
-    // --- Helper Functions ---
-
-    /** @description Checks if the request is from an authenticated user. */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /** @description Checks if the authenticated user's UID matches the provided userId. */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /** @description Checks ownership and ensures the document exists for state-changing operations. */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    // --- Collection Rules ---
-
-    /**
-     * @description Rules for Wheel documents. Access is restricted to the owner identified in the path.
-     * @path /users/{userId}/wheels/{wheelId}
-     * @allow (get) If the requester is the owner {userId}.
-     * @allow (create) If the requester is the owner {userId} and the data userId matches the path.
-     * @deny (list) If a user tries to list wheels belonging to a different userId.
-     * @principle Restricts access to a user's own data tree and validates relational integrity.
-     */
-    match /users/{userId}/wheels/{wheelId} {
-      allow get, list: if isOwner(userId);
+    // Uproszczone reguły: każdy może czytać i pisać w kołach i wyzwaniach.
+    // To pozwala na wspólne korzystanie z aplikacji bez barier prywatności.
+    match /wheels/{wheelId} {
+      allow read, write: if true;
       
-      allow create: if isOwner(userId) 
-        && request.resource.data.userId == userId
-        && request.resource.data.id == wheelId;
-      
-      allow update: if isExistingOwner(userId)
-        && request.resource.data.userId == resource.data.userId
-        && request.resource.data.id == resource.data.id;
-      
-      allow delete: if isExistingOwner(userId);
-
-      /**
-       * @description Rules for Challenge documents nested under a specific wheel.
-       * @path /users/{userId}/wheels/{wheelId}/challenges/{challengeId}
-       * @allow (list) If the requester is the owner {userId}.
-       * @allow (create) If the requester is the owner {userId} and the challenge wheelId matches the path.
-       * @deny (update) If the user attempts to change the wheelId relationship.
-       * @principle Hierarchical ownership check via path wildcards.
-       */
       match /challenges/{challengeId} {
-        allow get, list: if isOwner(userId);
-
-        allow create: if isOwner(userId)
-          && request.resource.data.wheelId == wheelId
-          && request.resource.data.id == challengeId;
-
-        allow update: if isExistingOwner(userId)
-          && request.resource.data.wheelId == resource.data.wheelId
-          && request.resource.data.id == resource.data.id;
-
-        allow delete: if isExistingOwner(userId);
+        allow read, write: if true;
       }
     }
 
-    // Explicitly deny access to any other collections not defined above
     match /{path=**} {
       allow read, write: if false;
     }
