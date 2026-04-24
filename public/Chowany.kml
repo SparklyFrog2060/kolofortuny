@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Przykładowa Gra</name>
+    <description>To jest przykładowy plik KML. Podmień go na swój właściwy plik w folderze public.</description>
+    <Style id="lineStyle">
+      <LineStyle>
+        <color>ffea5e0e</color>
+        <width>4</width>
+      </LineStyle>
+    </Style>
+    <Placemark>
+      <name>Punkt Startowy</name>
+      <Point>
+        <coordinates>21.0122,52.2297,0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Przykładowa Trasa</name>
+      <styleUrl>#lineStyle</styleUrl>
+      <LineString>
+        <tessellate>1</tessellate>
+        <coordinates>
+          21.0122,52.2297,0
+          21.0222,52.2397,0
+          21.0322,52.2297,0
+          21.0122,52.2297,0
+        </coordinates>
+      </LineString>
+    </Placemark>
+  </Document>
+</kml>
