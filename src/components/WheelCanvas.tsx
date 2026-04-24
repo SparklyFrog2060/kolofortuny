@@ -49,7 +49,7 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ wheelId, onResult }) =
       ctx.fillStyle = '#1e293b';
       ctx.fill();
       ctx.fillStyle = '#94a3b8';
-      ctx.font = '16px Poppins';
+      ctx.font = '18px Poppins';
       ctx.textAlign = 'center';
       ctx.fillText('Dodaj wyzwania!', centerX, centerY);
       return;
@@ -74,16 +74,22 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ wheelId, onResult }) =
       ctx.rotate(startAngle + sliceAngle / 2);
       ctx.textAlign = 'right';
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 12px Poppins';
+      // Zwiększona czcionka z 12px na 16px
+      ctx.font = 'bold 16px Poppins';
       const text = challenge.text.length > 15 ? challenge.text.substring(0, 13) + '..' : challenge.text;
-      ctx.fillText(text, radius - 20, 5);
+      // Przesunięcie tekstu lekko od krawędzi, aby pasował do większej czcionki
+      ctx.fillText(text, radius - 25, 6);
       ctx.restore();
     });
 
+    // Środek koła
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 10, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, 15, 0, 2 * Math.PI);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
   };
 
   const animate = () => {
@@ -121,11 +127,11 @@ export const WheelCanvas: React.FC<WheelCanvasProps> = ({ wheelId, onResult }) =
     <div className="flex flex-col items-center gap-8">
       <div className="relative p-4 bg-card rounded-full shadow-2xl border-4 border-border">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-10 bg-accent z-10 shadow-lg" style={{ clipPath: 'polygon(50% 100%, 0 0, 100% 0)' }} />
-        <canvas ref={canvasRef} width={400} height={400} className="max-w-full h-auto rounded-full" />
+        <canvas ref={canvasRef} width={450} height={450} className="max-w-full h-auto rounded-full" />
       </div>
       <Button 
         size="lg" onClick={handleSpin} disabled={isSpinning || !challenges || challenges.length < 2}
-        className="bg-primary hover:bg-primary/90 text-primary-foreground px-12 py-8 text-2xl font-bold rounded-full shadow-xl"
+        className="bg-primary hover:bg-primary/90 text-primary-foreground px-12 py-8 text-2xl font-bold rounded-full shadow-xl transition-transform hover:scale-105 active:scale-95"
       >
         {isSpinning ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : <Play className="mr-2 h-6 w-6 fill-current" />}
         START!
