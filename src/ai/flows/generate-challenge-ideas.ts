@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A Genkit flow for generating challenge ideas based on a theme or keywords.
@@ -17,13 +18,24 @@ export type GenerateChallengeIdeasInput = z.infer<typeof GenerateChallengeIdeasI
 
 const GenerateChallengeIdeasOutputSchema = z.object({
   ideas: z.array(z.string()).describe('A list of generated challenge ideas.'),
+  error: z.string().optional().describe('Error message if generation failed.'),
 });
 export type GenerateChallengeIdeasOutput = z.infer<typeof GenerateChallengeIdeasOutputSchema>;
 
 export async function generateChallengeIdeas(
   input: GenerateChallengeIdeasInput
 ): Promise<GenerateChallengeIdeasOutput> {
-  return generateChallengeIdeasFlow(input);
+  try {
+    return await generateChallengeIdeasFlow(input);
+  } catch (error: any) {
+    console.error('Genkit Flow Error:', error);
+    return { 
+      ideas: [], 
+      error: error.message?.includes('API key') 
+        ? 'Błąd konfiguracji AI: Brak klucza API (GOOGLE_API_KEY) w ustawieniach serwera.' 
+        : 'Wystąpił nieoczekiwany błąd podczas generowania pomysłów.' 
+    };
+  }
 }
 
 const generateChallengeIdeasPrompt = ai.definePrompt({
@@ -50,11 +62,12 @@ const generateChallengeIdeasPrompt = ai.definePrompt({
       },
     ],
   },
-  prompt: `You are a creative assistant that generates engaging challenge ideas for a 'wheel of fortune' game.
-Return the ideas as a JSON object with a single key 'ideas' which is an array of strings. Each string in the array should be a single challenge idea.
-Generate diverse and interesting challenge ideas based on the provided theme or keywords.
+  prompt: `Jesteś kreatywnym asystentem, który generuje angażujące pomysły na wyzwania do gry "koło fortuny".
+Zwróć pomysły jako obiekt JSON z kluczem 'ideas', który jest tablicą ciągów znaków. 
+Każdy ciąg powinien być pojedynczym, krótkim wyzwaniem.
+Generuj różnorodne i ciekawe wyzwania w języku polskim na podstawie podanego motywu.
 
-Theme: {{{theme}}}`,
+Motyw: {{{theme}}}`,
 });
 
 const generateChallengeIdeasFlow = ai.defineFlow(
@@ -66,7 +79,7 @@ const generateChallengeIdeasFlow = ai.defineFlow(
   async (input) => {
     const { output } = await generateChallengeIdeasPrompt(input);
     if (!output) {
-      throw new Error('Failed to generate challenge ideas.');
+      throw new Error('Nie udało się wygenerować pomysłów.');
     }
     return output;
   }

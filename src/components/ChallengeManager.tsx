@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -60,6 +61,16 @@ export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ userId, whee
     try {
       const theme = wheelName || "gry imprezowe";
       const result = await generateChallengeIdeas({ theme });
+      
+      if (result.error) {
+        toast({
+          variant: "destructive",
+          title: "Błąd AI",
+          description: result.error,
+        });
+        return;
+      }
+
       if (result.ideas && result.ideas.length > 0 && db) {
         result.ideas.forEach(idea => {
           const challengeId = Math.random().toString(36).substr(2, 9);
@@ -77,14 +88,14 @@ export const ChallengeManager: React.FC<ChallengeManagerProps> = ({ userId, whee
 
         toast({
           title: "Wygenerowano pomysły AI",
-          description: `Dodano ${result.ideas.length} nowych wyzwań dla motywu "${theme}".`,
+          description: `Dodano ${result.ideas.length} nowych wyzwań.`,
         });
       }
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Błąd generowania",
-        description: "Nie udało się wygenerować pomysłów w tej chwili.",
+        title: "Błąd",
+        description: "Nie udało się połączyć z usługą AI.",
       });
     } finally {
       setIsGenerating(false);
