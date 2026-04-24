@@ -11,6 +11,11 @@ service cloud.firestore {
       }
     }
 
+    // Nowa kolekcja graczy: niezbędna do działania systemu geofencingu i mapy w czasie rzeczywistym.
+    match /players/{playerId} {
+      allow read, write: if true;
+    }
+
     match /{path=**} {
       allow read, write: if false;
     }
