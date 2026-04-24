@@ -7,6 +7,7 @@ import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { WheelCanvas } from '@/components/WheelCanvas';
 import { WheelManager } from '@/components/WheelManager';
 import { ChallengeManager } from '@/components/ChallengeManager';
+import { GameMap } from '@/components/GameMap';
 import { 
   Dialog, 
   DialogContent, 
@@ -16,7 +17,8 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Settings2, ListTodo, Trophy, Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sparkles, Settings2, ListTodo, Trophy, Loader2, Map as MapIcon, Disc } from 'lucide-react';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
@@ -31,7 +33,6 @@ export default function Home() {
     }
   }, [user, isUserLoading, auth]);
 
-  // Pobieramy wszystkie koła z globalnej kolekcji
   const wheelsQuery = useMemoFirebase(() => {
     return query(collection(getFirestore(), 'wheels'), orderBy('createdAt', 'desc'));
   }, []);
@@ -67,58 +68,84 @@ export default function Home() {
             <h1 className="text-2xl font-bold tracking-tight text-primary">SpinFlow</h1>
           </div>
           <div className="hidden md:block text-sm font-medium text-muted-foreground">
-            Wspólne losowanie w czasie rzeczywistym
+            Wspólne wyzwania w czasie rzeczywistym
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          <aside className="lg:col-span-3 space-y-6">
-            <div className="bg-card p-6 rounded-3xl shadow-sm border border-border">
-              <WheelManager 
-                wheels={wheels || []} 
-                activeWheelId={activeWheelId} 
-                onSelect={(w) => setActiveWheelId(w.id)} 
-              />
-            </div>
-          </aside>
+        <Tabs defaultValue="wheel" className="w-full">
+          <div className="flex justify-center mb-8">
+            <TabsList className="bg-card border border-border p-1 rounded-2xl">
+              <TabsTrigger value="wheel" className="rounded-xl px-6 py-2 flex gap-2 items-center data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Disc className="w-4 h-4" />
+                Koło Fortuny
+              </TabsTrigger>
+              <TabsTrigger value="map" className="rounded-xl px-6 py-2 flex gap-2 items-center data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <MapIcon className="w-4 h-4" />
+                Mapa Gry
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <section className="lg:col-span-6 flex flex-col items-center">
-            <div className="w-full text-center mb-8">
-              <h2 className="text-3xl font-bold mb-2 text-primary">
-                {activeWheel?.name || "Wybierz koło"}
-              </h2>
-              <p className="text-muted-foreground">
-                Zalalogowany anonimowo. Wszystkie koła są wspólne.
-              </p>
-            </div>
-            
-            <div className="relative w-full aspect-square max-w-[500px] flex items-center justify-center">
-              {activeWheelId ? (
-                <WheelCanvas wheelId={activeWheelId} onResult={handleResult} />
-              ) : (
-                <div className="text-center p-12 bg-card rounded-full shadow-inner border-8 border-dashed border-primary/10">
-                  <p className="text-muted-foreground italic">Wybierz lub stwórz koło z listy obok!</p>
+          <TabsContent value="wheel" className="mt-0">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <aside className="lg:col-span-3 space-y-6">
+                <div className="bg-card p-6 rounded-3xl shadow-sm border border-border">
+                  <WheelManager 
+                    wheels={wheels || []} 
+                    activeWheelId={activeWheelId} 
+                    onSelect={(w) => setActiveWheelId(w.id)} 
+                  />
                 </div>
-              )}
-            </div>
-          </section>
+              </aside>
 
-          <aside className="lg:col-span-3">
-            <div className="bg-card p-6 rounded-3xl shadow-sm border border-border">
-              {activeWheelId ? (
-                <ChallengeManager wheelId={activeWheelId} />
-              ) : (
-                <div className="text-center py-12">
-                   <ListTodo className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
-                   <p className="text-sm text-muted-foreground">Tutaj pojawią się opcje losowania</p>
+              <section className="lg:col-span-6 flex flex-col items-center">
+                <div className="w-full text-center mb-8">
+                  <h2 className="text-3xl font-bold mb-2 text-primary">
+                    {activeWheel?.name || "Wybierz koło"}
+                  </h2>
+                  <p className="text-muted-foreground">
+                    Wszyscy gracze widzą to samo koło.
+                  </p>
                 </div>
-              )}
+                
+                <div className="relative w-full aspect-square max-w-[500px] flex items-center justify-center">
+                  {activeWheelId ? (
+                    <WheelCanvas wheelId={activeWheelId} onResult={handleResult} />
+                  ) : (
+                    <div className="text-center p-12 bg-card rounded-full shadow-inner border-8 border-dashed border-primary/10">
+                      <p className="text-muted-foreground italic">Wybierz lub stwórz koło z listy obok!</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <aside className="lg:col-span-3">
+                <div className="bg-card p-6 rounded-3xl shadow-sm border border-border">
+                  {activeWheelId ? (
+                    <ChallengeManager wheelId={activeWheelId} />
+                  ) : (
+                    <div className="text-center py-12">
+                       <ListTodo className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+                       <p className="text-sm text-muted-foreground">Tutaj pojawią się opcje losowania</p>
+                    </div>
+                  )}
+                </div>
+              </aside>
             </div>
-          </aside>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="map" className="mt-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-card p-8 rounded-3xl shadow-sm border border-border">
+              <div className="mb-6">
+                <h2 className="text-3xl font-bold text-primary mb-2">Mapa Gry</h2>
+                <p className="text-muted-foreground">Podgląd terenu gry z pliku Chowany.kml</p>
+              </div>
+              <GameMap />
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
 
       <Dialog open={showResult} onOpenChange={setShowResult}>
